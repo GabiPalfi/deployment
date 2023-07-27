@@ -11,7 +11,7 @@ using namespace std;
 #define CURRENT_BLOCK ::game_map[CURRENT][y][x]
 #define MEMORY_BLOCK ::game_map[MEMORY][y][x]
 
-char game_map[2][105][105] = {0};
+char game_map[3][105][105] = {0};
 
 int _round = 0, id = 0;
 int map_width = 0, map_height = 0;
@@ -121,6 +121,21 @@ void execute_actions(std::ofstream& out){
 	int parent_map[105][105][2] = {0};
 	int value_map[105][105]={0};
 
+	bool danger=false;
+	for(int i=0;i<4;++i) if(game_map[CURRENT][pl_y+dy[i]][pl_x+dx[i]]=='F'){
+		danger=true;
+	}
+
+	if(danger==true){
+		char move = 'U';
+		if(pl_x<map_width/2) move='R';
+		if(pl_y<map_height/2) move='U';
+		if(pl_x>map_width/2) move='L';
+		if(pl_y>map_height/2) move='U';
+		out<<move<<" M "<<move<<'\n';
+		return;
+	}
+
 	if(GO_HOME==false||battery==true){
 		show_map();
 
@@ -140,14 +155,12 @@ void execute_actions(std::ofstream& out){
 				
 
 		if(list.empty()) {
-			if(game_map[pl_y-1][pl_x]!="."||game_map[pl_y-1][pl_x]=="B"){
-				out<<'L';
-				backtr.push_front('L');
-			}
-			else{
-				out<<'U';
-				backtr.push_front('U');
-			}
+			char move = 'U';
+			if(pl_x<map_width/2) move='R';
+			if(pl_y<map_height/2) move='U';
+			if(pl_x>map_width/2) move='L';
+			if(pl_y>map_height/2) move='U';
+			out<<move<<' '<<"M "<<move<<'\n';
 			return;
 		}
 
@@ -229,6 +242,10 @@ void execute_actions(std::ofstream& out){
 		printf("TO TOUCH %d %d\n",pl_y-last_target.first,pl_x-last_target.second);
 
 		char move = 'U';
+		if(pl_x<map_width/2) move='R';
+		if(pl_y<map_height/2) move='U';
+		if(pl_x>map_width/2) move='L';
+		if(pl_y>map_height/2) move='U';
 
 		parent_map[last_target.first][last_target.second][0]=0;
 		parent_map[last_target.first][last_target.second][1]=0;
@@ -244,7 +261,10 @@ void execute_actions(std::ofstream& out){
 		printf("%c ",move);
 		out<<move<<' ';
 
-		if(!battery) backtr.push_front(move);
+		if(!battery){
+			if(game_map[last_target.first][last_target.second]==".")
+				backtr.push_front(move);
+		} 
 
 		if(game_map[last_target.first][last_target.second]!="." && game_map[last_target.first][last_target.second]!="E"){
 			target=save;
@@ -257,7 +277,7 @@ void execute_actions(std::ofstream& out){
 			out<<"M ";
 
 			if(last_target.first-pl_y==-1) move='U';
-			if(last_target.first-pl_y==1) move='D';
+			if(last_target.first-pl_y==1) move='U';
 			if(last_target.second-pl_x==-1) move='L';
 			if(last_target.second-pl_x==1) move='R';
 			out<<move<<' ';
@@ -315,12 +335,13 @@ int main()
 		if (input)
 		{
 			gather_data(input);
+
 			input.close();
 			std::string ourFileName = "game/c" + std::to_string(id) + "_" + std::to_string(::_round) +
 									  ".txt";
 			std::ofstream response(ourFileName);
 
-			if(iron>=1&&osmium>=1&&!battery) GO_HOME=true;
+			//if(iron>=1&&osmium>=1&&!battery) GO_HOME=true;
 			execute_actions(response);
 			//response<<MOVES[rand()%5];
 			response.close();
