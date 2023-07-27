@@ -82,7 +82,7 @@ void gather_data(std::ifstream& in)
 	
 	in>>pl_x>>pl_y;
 	base_y=pl_y,base_x=pl_x;
-	in>>health>>drill>>attack>>agility>>scan>>battery;
+	in>>health>>drill>>attack>>agility>>scan>>radar>>battery;
 	in>>cobble>>iron>>osmium;
 	//system("cls");
 	//show_map();
@@ -90,82 +90,71 @@ void gather_data(std::ifstream& in)
 
 POS last_taken_direction=NULL_POINT;
 
-string path_finding(int _x,int _y){
+bool visited[105][105]={0};
 
-    bool access_map[105][105]={0};
-    POS parents[105][105]={0};
-    int val_map[105][105]={0};
+struct PATH{
+	int x,y;
+	string motion;
+	double dist;
+	bool operator <(const PATH& other) const {
+		return(dist>other.dist);
+	};
+};
 
-    std::queue<POS> qu;
+std::priority_queue<PATH> a_star;
 
-    qu.push({pl_x,pl_y});
-    access_map[pl_x][pl_y]=1;
+string path_finding(int _x,int _y,bool once=false){
 
-    int dx[4]={0,0,1,-1};
-    int dy[4]={1,-1,0,0};
+	if(visited[_y][_x]==true) return "";
 
-    for (int y = 0; y <= map_height; ++y){
-		for (int x = 0; x <= map_width; ++x){
-            if(MEMORY_BLOCK=='B') access_map[y][x]=1;
-            if(MEMORY_BLOCK=='F') {
-                access_map[y][x]=1;
-                for(int j=0;j<4;++j) access_map[y+dy[j]][x+dx[j]]=1;
-            }
-        }
-    }
+	string res="";
 
-    while (!qu.empty())
-    {
-        POS top = qu.front();
-        qu.pop();
+	int dx[4]={0,0,1,-1},dy[4]={1,-1,0,0};
+	string motion[4]={"D","U","L","R"};
 
-        #define tx top.x
-        #define ty top.y
+	for(int i=0;i<4;++i){
 
-        for(int i=0;i<4;++i){
-            if(tx+dx[i]<0 || ty+dy[i]<0) continue;
-            if(tx+dx[i]>map_width || ty+dy[i]>map_height) continue;
-            if(access_map[ty+dy[i]][tx+dx[i]]) continue;
+		#define tx _x+dx[i]
+		#define ty _y+dy[i]
 
-            parents[ty+dy[i]][tx+dx[i]]={tx,ty};
+		if(ty<0||tx<0) continue;
+		if(tx>=map_width||ty>=map_height) continue;
 
-            val_map[ty+dy[i]][tx+dx[i]]=val_map[ty][tx]+1;
-            access_map[ty+dy[i]][tx+dx[i]]=1;
-            qu.push({tx+dx[i],ty+dy[i]});
-        }
-
-    }
-
-	POS current=parents[_y][_x],last_pos=current;
-
-	printf("%d %d\n",current.x,current.y);
-
-	int j=0;
-
-	while(current.x!=0 && j<150){
-		printf("%d %d\n",current.y,current.x);
-		last_pos=current;
-		current=parents[current.y][current.x];
-		++j;
+		if(::game_map[ty][tx]!="B"&&::game_map[ty][tx]!="F")
+			a_star.push({tx,ty,motion[i],sqrt(tx*tx+ty*ty)});
 	}
 
-	printf("CURRENT %d %d\n",current.x,current.y);
-    printf("PLAYER %d %d\n",pl_x,pl_y);
-
+	res+=a_star.top().motion+" ";
+	if(!once) res+="M "+ path_finding(a_star.top().x,a_star.top().y,true);
+	return res;
 }
 
-string explore(){
+void explore(ofstream& out){
     std::string res;
 
-    if(NULL_DIRECTION(last_taken_direction)){
-        last_taken_direction={rand()%int((map_width/10.0f)*9.0f)+int(map_width/10.0f)/2,rand()%int((map_height/10.0f)*9.0f)+int(map_height/10.0f)/2};
-    }
+	const float diff_x=pl_x-last_taken_direction.x;
+	const float diff_y=pl_y-last_taken_direction.y;
+	const float dist = sqrt(diff_x*diff_x+diff_y*diff_y);
+
+	srand((unsigned) time(NULL));
+
+	if(dist<=3.0f||(NULL_DIRECTION(last_taken_direction))){
+		last_taken_direction={rand()%int((map_width/10.0f)*9.0f)+int(map_width/10.0f)/2,
+			rand()%int((map_height/10.0f)*9.0f)+int(map_height/10.0f)/2},
+		memset(visited,sizeof(visited),0x0);
+		while(a_star.empty()==false) a_star.pop();
+		return explore(out);
+	}
+
+	printf("DISTANCE %f\n",dist);
+	printf("PLAYER %d %d\n",pl_x,pl_y);
+	printf("TARGET %d %d\n",last_taken_direction.x,last_taken_direction.y);
 
     printf("MAP WIDTH %d, MAP HEIGHT %d\n",map_width,map_height);
-    printf("LTD %d %d\n", last_taken_direction.x,last_taken_direction.y);
 
-    path_finding(last_taken_direction.x,last_taken_direction.y);
-    
+    string motion = path_finding(last_taken_direction.x,last_taken_direction.y);
+	cout<<motion<<'\n';
+	out<<motion<<' ';
 }
 
 std::vector<vector<POS>> surroundings(){
@@ -177,14 +166,16 @@ std::vector<vector<POS>> surroundings(){
             }
         }
     }
+	return res;
 }
 
 void take_decisions(std::ofstream& out){
     //Explore
-    auto surrounding_blocks =  surroundings();
+    auto surrounding_blocks = surroundings();
     //if(surrounding_blocks[OSMIUM].size()==0 && surrounding_blocks[IRON].size()==0){
-        explore();
+        explore(out);
     //}
+
 
     //Gather
     //Come back

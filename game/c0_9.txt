@@ -1,2 +1,1 @@
-D M D
-B B
+R M R 

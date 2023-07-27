@@ -46,6 +46,7 @@ std::vector<UPGRADE> upgrades = {
 
 void show_map(){
 	
+	printf("OSMIUM %d, IRON %d\n",osmium,iron);
 	printf("--ROWSTART--\n");
 	for (int y = min_y; y <= max_y; ++y){
 		for (int x = min_x; x <= max_x; ++x)
@@ -87,7 +88,7 @@ void gather_data(std::ifstream& in)
 	
 	in>>pl_x>>pl_y;
 	base_y=pl_y,base_x=pl_x;
-	in>>health>>drill>>attack>>agility>>scan>>battery;
+	in>>health>>drill>>attack>>agility>>scan>>radar>>battery;
 	in>>cobble>>iron>>osmium;
 	//system("cls");
 	//show_map();
@@ -138,7 +139,17 @@ void execute_actions(std::ofstream& out){
 			}
 				
 
-		if(list.empty()) {if(game_map[pl_y-1][pl_x]!="."||game_map[pl_y-1][pl_x]=="B")out<<'L';else{out<<'U';}return;}
+		if(list.empty()) {
+			if(game_map[pl_y-1][pl_x]!="."||game_map[pl_y-1][pl_x]=="B"){
+				out<<'L';
+				backtr.push_front('L');
+			}
+			else{
+				out<<'U';
+				backtr.push_front('U');
+			}
+			return;
+		}
 
 		std::priority_queue<block> copy=list;
 
@@ -255,7 +266,6 @@ void execute_actions(std::ofstream& out){
 		printf("\n");
 	}
 	else{
-
 		if(!backtr.empty()){
 			switch (backtr.front())
 			{
@@ -279,7 +289,7 @@ void execute_actions(std::ofstream& out){
 				break;
 			}
 			backtr.pop_front();
-			if(backtr.empty()) {out<<"B B";GO_HOME=false;battery=true;}
+			if(backtr.empty()) {out<<"B B";GO_HOME=false;battery=true;printf("BOUGHT BATTERY\n");}
 		}
 			
 	}
@@ -310,7 +320,7 @@ int main()
 									  ".txt";
 			std::ofstream response(ourFileName);
 
-			if(iron>=1&&osmium>=1) GO_HOME=true;
+			if(iron>=1&&osmium>=1&&!battery) GO_HOME=true;
 			execute_actions(response);
 			//response<<MOVES[rand()%5];
 			response.close();
