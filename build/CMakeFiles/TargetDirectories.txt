@@ -1,0 +1,3 @@
+C:/Users/boroi/Desktop/deployment/build/CMakeFiles/runnable.dir
+C:/Users/boroi/Desktop/deployment/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/boroi/Desktop/deployment/build/CMakeFiles/ZERO_CHECK.dir
